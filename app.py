@@ -1,63 +1,52 @@
 import streamlit as st
 import math
 
-# Konfiguracja strony
-st.set_page_config(page_title="Kalkulator Zbrojarski Wrocław", page_icon="🏗️")
-
-st.title("🏗️ System Wspierania Produkcji Zbrojeń")
-st.markdown("---")
+st.set_page_config(page_title="Kalkulator Zbrojarza Wrocław", page_icon="🏗️")
+st.title("🏗️ Kalkulator Zbrojarski")
 
 # Menu wyboru w pasku bocznym
-opcja = st.sidebar.selectbox(
-    "Co chcesz obliczyć?",
-    ("Kąt gięcia (Trójkąt)", "Parametry łuku (Strzałka)")
-)
+opcja = st.sidebar.selectbox("Wybierz obliczenia:", 
+    ["Kąt gięcia", "Wysokość łuku", "Pręt typu L (Transport)"])
 
-if opcja == "Kąt gięcia (Trójkąt)":
-    st.header("📐 Obliczanie kąta gięcia")
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        a = st.number_input("Przyprostokątna - Wysokość (cm)", min_value=0.1, value=20.0, step=0.1)
-    with col2:
-        c = st.number_input("Przeciwprostokątna - Skos (cm)", min_value=0.1, value=40.0, step=0.1)
+def pobierz_wartosc(label):
+    val = st.text_input(label, value="0").replace(',', '.')
+    return float(val) if val else 0.0
 
-    if c <= a:
-        st.error("Błąd: Skos (przeciwprostokątna) musi być dłuższy niż wysokość!")
-    else:
-        kat_rad = math.asin(a / c)
-        kat_deg = math.degrees(kat_rad)
+if opcja == "Kąt gięcia":
+    st.subheader("Obliczanie kąta gięcia (Trójkąt)")
+    try:
+        a = pobierz_wartosc("Przyprostokątna (cm)")
+        c = pobierz_wartosc("Przeciwprostokątna (cm)")
+        if c > a and a > 0:
+            kat = math.degrees(math.asin(a/c))
+            st.metric("Kąt nachylenia", f"{round(kat, 2)}°")
+            st.metric("Kąt gięcia maszynowy", f"{round(90-kat, 2)}°")
+    except: st.error("Wpisz poprawne liczby")
+
+elif opcja == "Wysokość łuku":
+    st.subheader("Obliczanie wysokości łuku")
+    try:
+        l = pobierz_wartosc("Długość pręta po łuku L (cm)")
+        r = pobierz_wartosc("Promień gięcia R (cm)")
+        if r > 0 and l > 0:
+            alfa = l / r
+            h = r * (1 - math.cos(alfa / 2))
+            st.metric("Wysokość łuku (h)", f"{round(h, 2)} cm")
+            if h > 240: 
+                st.error(f"⚠️ GABARYT PRZEKROCZONY! (Wysokość: {round(h, 2)} cm)")
+            else: 
+                st.success("✅ Gabaryt OK")
+    except: st.error("Wpisz poprawne liczby")
+
+elif opcja == "Pręt typu L (Transport)":
+    st.subheader("Weryfikacja pręta typu L")
+    st.info("Podaj wymiary ramion. Sprawdzimy wysokość transportową (max 240 cm) oraz odległość między końcami.")
+    try:
+        ramie1 = pobierz_wartosc("Długość ramienia A (cm)")
+        ramie2 = pobierz_wartosc("Długość ramienia B (cm)")
         
-        st.success(f"**Kąt nachylenia:** {round(kat_deg, 2)}°")
-        st.info(f"**Kąt gięcia maszynowy:** {round(90 - kat_deg, 2)}°")
-
-elif opcja == "Parametry łuku (Strzałka)":
-    st.header("🏹 Obliczanie wysokości łuku")
-    
-    col1, col2 = st.columns(2)
-    with col1:
-        l = st.number_input("Długość pręta po łuku L (cm)", min_value=0.1, value=150.0, step=0.1)
-    with col2:
-        r = st.number_input("Promień gięcia R (cm)", min_value=0.1, value=300.0, step=0.1)
-
-    # Obliczenia
-    alfa_rad = l / r
-    h = r * (1 - math.cos(alfa_rad / 2))
-    s = 2 * r * math.sin(alfa_rad / 2)
-    kat_srodkowy = math.degrees(alfa_rad)
-
-    # Wyniki
-    st.markdown("### Wyniki obliczeń:")
-    c1, c2, c3 = st.columns(3)
-    c1.metric("Wysokość (h)", f"{round(h, 2)} cm")
-    c2.metric("Rozpiętość (s)", f"{round(s, 2)} cm")
-    c3.metric("Kąt środkowy", f"{round(kat_srodkowy, 2)}°")
-
-    # Sprawdzenie gabarytu
-    if h > 240:
-        st.warning("⚠️ **GABARYT:** Wysokość łuku przekracza 240 cm! Sprawdź transport.")
-    else:
-        st.success("✅ **TRANSPORT:** Wysokość mieści się w skrajni (do 240 cm).")
-
-st.markdown("---")
-st.caption("Aplikacja dedykowana dla inżynierów produkcji zbrojeń. Jednostki: cm. Standard transportowy: 240 cm.")
+        if ramie1 > 0 and ramie2 > 0:
+            # Obliczanie przeciwprostokątnej (odległość między końcami)
+            skos = math.sqrt(ramie1**2 + ramie2**2)
+            
+            st.metric("Odleg
