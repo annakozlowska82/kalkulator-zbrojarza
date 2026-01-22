@@ -4,7 +4,6 @@ import math
 st.set_page_config(page_title="Kalkulator Zbrojarza Wrocław", page_icon="🏗️")
 st.title("🏗️ Kalkulator Zbrojarski")
 
-# Menu wyboru w pasku bocznym
 opcja = st.sidebar.selectbox("Wybierz obliczenia:", 
     ["Kąt gięcia", "Wysokość łuku", "Pręt typu L (Transport)"])
 
@@ -18,15 +17,13 @@ def pobierz_wartosc(label):
 if opcja == "Kąt gięcia":
     st.subheader("Obliczanie kąta gięcia (Trójkąt)")
     try:
-        a = pobierz_wartosc("Przyprostokątna (cm)")
-        c = pobierz_wartosc("Przeciwprostokątna (cm)")
+        a = pobierz_wartosc("Przyprostokątna - pion (cm)")
+        c = pobierz_wartosc("Przeciwprostokątna - skos (cm)")
         if c > a and a > 0:
             kat = math.degrees(math.asin(a/c))
             st.metric("Kąt nachylenia", f"{round(kat, 2)}°")
             st.metric("Kąt gięcia maszynowy", f"{round(90-kat, 2)}°")
-        elif a > 0:
-            st.warning("Przeciwprostokątna musi być dłuższa od przyprostokątnej.")
-    except Exception: st.error("Wpisz poprawne liczby")
+    except Exception: st.error("Błąd danych")
 
 elif opcja == "Wysokość łuku":
     st.subheader("Obliczanie wysokości łuku")
@@ -35,33 +32,36 @@ elif opcja == "Wysokość łuku":
         r = pobierz_wartosc("Promień gięcia R (cm)")
         if r > 0 and l > 0:
             alfa = l / r
-            h = r * (1 - math.cos(alfa / 2))
-            st.metric("Wysokość łuku (h)", f"{round(h, 2)} cm")
-            if h > 240: 
-                st.error(f"⚠️ GABARYT PRZEKROCZONY! (Wysokość: {round(h, 2)} cm)")
-            else: 
-                st.success("✅ Gabaryt OK")
-    except Exception: st.error("Wpisz poprawne liczby")
+            h_luk = r * (1 - math.cos(alfa / 2))
+            st.metric("Wysokość łuku (h)", f"{round(h_luk, 2)} cm")
+            if h_luk > 240: st.error("⚠️ GABARYT!")
+            else: st.success("✅ OK")
+    except Exception: st.error("Błąd danych")
 
 elif opcja == "Pręt typu L (Transport)":
-    st.subheader("Weryfikacja pręta typu L")
-    st.info("Podaj wymiary ramion. Sprawdzimy wysokość transportową (max 240 cm) oraz odległość między końcami.")
+    st.subheader("Weryfikacja wymiarów pręta L")
     try:
-        ramie1 = pobierz_wartosc("Długość ramienia A (cm)")
-        ramie2 = pobierz_wartosc("Długość ramienia B (cm)")
+        a = pobierz_wartosc("Długość ramienia A (cm)")
+        b = pobierz_wartosc("Długość ramienia B (cm)")
         
-        if ramie1 > 0 and ramie2 > 0:
-            # Obliczanie przeciwprostokątnej (odległość między końcami)
-            skos = math.sqrt(ramie1**2 + ramie2**2)
-            st.metric("Odległość między końcami (skos)", f"{round(skos, 2)} cm")
+        if a > 0 and b > 0:
+            c = math.sqrt(a**2 + b**2)
+            # Wysokość trójkąta prostokątnego opuszczona na przeciwprostokątną
+            h_trojkata = (a * b) / c
             
-            # Weryfikacja wysokości
-            if ramie1 > 240 and ramie2 > 240:
-                st.error(f"❌ OBA RAMIONA przekraczają 240 cm! (A: {ramie1}cm, B: {ramie2}cm).")
-            elif ramie1 > 240:
-                st.warning(f"⚠️ Ramię A ({ramie1} cm) przekracza 240 cm. Pręt musi leżeć na ramieniu A.")
-            elif ramie2 > 240:
-                st.warning(f"⚠️ Ramię B ({ramie2} cm) przekracza 240 cm. Pręt musi leżeć na ramieniu B.")
+            st.markdown("### Wymiary konstrukcyjne:")
+            col1, col2 = st.columns(2)
+            col1.metric("Odległość końców (skos)", f"{round(c, 2)} cm")
+            col2.metric("Wysokość po skosie (h)", f"{round(h_trojkata, 2)} cm")
+            
+            st.markdown("---")
+            st.subheader("Analiza transportowa (max 240 cm):")
+            
+            # Sprawdzenie czy da się przewieźć
+            if a <= 240 or b <= 240 or h_trojkata <= 240:
+                st.success("✅ Pręt da się zmieścić w skrajni!")
+                if h_trojkata <= 240 and (a > 240 and b > 240):
+                    st.info(f"💡 Uwaga: Pręt musi leżeć na skosie. Wysokość transportowa wyniesie: {round(h_trojkata, 2)} cm.")
             else:
-                st.success("✅ Oba ramiona mieszczą się w 240 cm. Transport dowolny.")
+                st.error("❌ GABARYT: Nawet po skosie pręt przekracza 240 cm!")
     except Exception: st.error("Wpisz poprawne liczby")
