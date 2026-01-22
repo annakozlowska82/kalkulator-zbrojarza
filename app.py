@@ -10,7 +10,10 @@ opcja = st.sidebar.selectbox("Wybierz obliczenia:",
 
 def pobierz_wartosc(label):
     val = st.text_input(label, value="0").replace(',', '.')
-    return float(val) if val else 0.0
+    try:
+        return float(val) if val else 0.0
+    except ValueError:
+        return 0.0
 
 if opcja == "Kąt gięcia":
     st.subheader("Obliczanie kąta gięcia (Trójkąt)")
@@ -21,7 +24,9 @@ if opcja == "Kąt gięcia":
             kat = math.degrees(math.asin(a/c))
             st.metric("Kąt nachylenia", f"{round(kat, 2)}°")
             st.metric("Kąt gięcia maszynowy", f"{round(90-kat, 2)}°")
-    except: st.error("Wpisz poprawne liczby")
+        elif a > 0:
+            st.warning("Przeciwprostokątna musi być dłuższa od przyprostokątnej.")
+    except Exception: st.error("Wpisz poprawne liczby")
 
 elif opcja == "Wysokość łuku":
     st.subheader("Obliczanie wysokości łuku")
@@ -36,7 +41,7 @@ elif opcja == "Wysokość łuku":
                 st.error(f"⚠️ GABARYT PRZEKROCZONY! (Wysokość: {round(h, 2)} cm)")
             else: 
                 st.success("✅ Gabaryt OK")
-    except: st.error("Wpisz poprawne liczby")
+    except Exception: st.error("Wpisz poprawne liczby")
 
 elif opcja == "Pręt typu L (Transport)":
     st.subheader("Weryfikacja pręta typu L")
@@ -48,5 +53,15 @@ elif opcja == "Pręt typu L (Transport)":
         if ramie1 > 0 and ramie2 > 0:
             # Obliczanie przeciwprostokątnej (odległość między końcami)
             skos = math.sqrt(ramie1**2 + ramie2**2)
+            st.metric("Odległość między końcami (skos)", f"{round(skos, 2)} cm")
             
-            st.metric("Odleg
+            # Weryfikacja wysokości
+            if ramie1 > 240 and ramie2 > 240:
+                st.error(f"❌ OBA RAMIONA przekraczają 240 cm! (A: {ramie1}cm, B: {ramie2}cm).")
+            elif ramie1 > 240:
+                st.warning(f"⚠️ Ramię A ({ramie1} cm) przekracza 240 cm. Pręt musi leżeć na ramieniu A.")
+            elif ramie2 > 240:
+                st.warning(f"⚠️ Ramię B ({ramie2} cm) przekracza 240 cm. Pręt musi leżeć na ramieniu B.")
+            else:
+                st.success("✅ Oba ramiona mieszczą się w 240 cm. Transport dowolny.")
+    except Exception: st.error("Wpisz poprawne liczby")
